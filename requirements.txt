@@ -1,0 +1,10 @@
+protobuf
+brotli
+pycrypto
+docopt
+stat
+Crypto
+binascii
+zstandard
+binascii
+google
