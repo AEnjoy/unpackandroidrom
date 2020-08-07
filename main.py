@@ -307,6 +307,17 @@ class lg_kd_kdz():
             return True
         except:return False
             #dz.
+    def unpackkdz(self):#all
+        kdz=unkdz.KDZFileTools()
+        kdz.kdzfile=self.file
+        kdz.openFile(self.file)
+        kdz.outdir(os.getcwd())
+        kdz.cmdExtractAll()
+    def listkdz(self):#all
+        kdz=unkdz.KDZFileTools()
+        kdz.kdzfile=self.file
+        kdz.openFile(self.file)
+        kdz.cmdListPartitions()        
 
 class unpackrom():
     file=''
@@ -314,7 +325,7 @@ class unpackrom():
     def __init__(self,file,rominfo,unpacktodir=1,check=0):
         '''file:inputfile unpacktodir 0/1 0:Only run onec ;1 only to system dir check:lib 0/1'''
         self.rominfo=rominfo
-        if file==False:self.file=rominfo.file
+        if file=='':self.file=rominfo.file
         else:self.file=file
         self.unpacktodir=unpacktodir
         if check==1:
@@ -323,12 +334,12 @@ class unpackrom():
         a=input('ROM解析完成.是否解包?y/n>>>')
         if a=='y':
             pass
-            '''
-            if rominfo.abflag==True:self.abunpack()
+            if rominfo.abflag==True and zipfile.is_zipfile(self.file)==True:self.unzip()
             if rominfo.samsumgodin==True:self.samsumg_tar()
             if rominfo.lgkdz==True:self.lg_kdz()
-            if rominfo.ozip==True:self.oppo_ozip()
-            '''
+            if rominfo.lgkd==True:self.lg_dz()
+            #if rominfo.ozip==True:self.oppo_ozip()
+            if rominfo.abflag==True:self.abunpack()#.bin            
         elif a=='n':print('用户取消')
     
     def samsumg_tar(self):
@@ -346,39 +357,70 @@ class unpackrom():
             self.file='/rom/system.img.ext4'
             self.imgunpack()
     def lg_kdz(self):
-        print('当a,b同时为y时,将提取出dz后再列出dz文件分区表,否则当a=y,b=n时,将列出kdz内文件分列表')
-        a=input('a:是否仅列出.dz分区列表?(默认n)y/n')
-        b=input('b:是否完整解包(自动解包.dz)(默认y)?y/n')
-        c=input('c:欲解包的分区序号:(默认全部Enter)')
-        d=input('d:是否解包出分片文件?(默认n)y/n')
-        if a=='n' and b=='y':
-            pass
+        print('当a,b同时为y时,将列出kdz文件分区表并解包,否则当a=y,b=n时,将仅列出kdz内文件列表')
+        a=input('a:是否仅列出.kdz分区列表?(默认n)y/n')
+        b=input('b:是否解包kdz全部文件(默认y)?y/n')
+        c=input('c:欲解包的分区序号:(默认全部Enter)[暂不可用]')
+        if a=='y' and b=='y':lg_kd_kdz(self.file).unpackkdz()
+        elif a=='y' and b=='n':lg_kd_kdz(self.file).listkdz()
+    def lg_dz(self):pass
     def oppo_ozip(self):
         pass
-    def unzip(self):
+    def unzip(self):#system.img
         if info.flag==1:return
         if info.flag==2:
             #专属格式解包
             pass
-        if self.rominfo.abflag==True:
-            extract_android_ota_payload.main(self.file,'rom')
+        if self.rominfo.abflag==True and zipfile.is_zipfile(self.file)==True:
+            z=zipfile.ZipFile(self.file)
+            z.extract('payload.bin')
+            z.close()
+            if os.path.exists('output')==False:os.mkdir('output')
+            payload_dumper.main('payload.bin')
             if self.unpacktodir==1:
-                if os.path.exists('/rom/system.img'):
-                    self.file='/rom/system.img'
+                if os.path.exists('/output/system.img'):
+                    self.file='/output/system.img'
                     self.imgunpack()
-                if os.path.exists('/rom/system_a.img'):
-                    self.file='/rom/system_a.img'
+                if os.path.exists('/output/system_a.img'):
+                    self.file='/output/system_a.img'
                     self.imgunpack()                
-                if os.path.exists('/rom/surper.img'):print('暂不支持动态分区!')
-        z=zipfile.ZipFile(self.file)
-        z.extractall('rom')
-        z.close()
+                if os.path.exists('/output/surper.img'):print('暂不支持动态分区!')
+        if self.rominfo.onlyfolder==True:
+            z=zipfile.ZipFile(self.file)
+            z.extract('system')
+            z.close()
+        if self.rominfo.olnyimg==True:
+            z=zipfile.ZipFile(self.file)
+            z.extract('system.img')
+            z.close()
+            if self.unpacktodir==1:
+                self.file='system.img'
+                self.imgunpack()
+        if self.rominfo.brotil==True:
+            z=zipfile.ZipFile(self.file)
+            z.extract('system.transfer.list')
+            z.extract('system.new.dat.br')
+            z.close()
+            self.brotli()
+            self.newdatunpack()
+            if self.unpacktodir==1:
+                self.file='system.img'
+                self.imgunpack()
+        if self.rominfo.newdat==True:
+            z=zipfile.ZipFile(self.file)
+            z.extract('system.transfer.list')
+            z.extract('system.new.dat')
+            z.close()
+            self.newdatunpack()
+            if self.unpacktodir==1:
+                self.file='system.img'
+                self.imgunpack()        
         if self.unpacktodir==0:
-            print('Done! 输出的到的目录: /rom')
+            print('Done! 输出的到的目录: /')
             return
         else:pass
     def abunpack(self):
-        extract_android_ota_payload.main(self.file,'rom')
+        payload_dumper.main(self.file)
         if self.unpacktodir==1:
             if os.path.exists('/rom/system.img'):
                 self.file='/rom/system.img'
@@ -417,10 +459,6 @@ class unpackrom():
         #       Chinese: 神郭
         #====================================================
         sdat2img.main(TRANSFER_LIST_FILE,NEW_DATA_FILE,OUTPUT_IMAGE_FILE)
-        if self.unpacktodir==1:
-            self.file=OUTPUT_IMAGE_FILE
-            self.imgunpack()
-        
 
     def brotli(self,INPUT_FILE='system.new.dat.br',OUTPUT_FILE='system.new.dat',flag=1):
         import brotli as b
@@ -443,7 +481,7 @@ class unpackrom():
         print('参数无效!')
 
 def parseArgs():
-    parser = argparse.ArgumentParser(description='ROM解包大师')
+    parser = argparse.ArgumentParser(description='ROM智能处理工具箱')
     parser.add_argument('-f', '--file', help='欲解包的ROM文件', action='store', required=False, dest='file')
     parser.add_argument("-t", "--type", type=str, choices=['kdz', 'dz', 'samsumgodin','abota','flashable','ozip'], help="强制指定输入的文件ROM的类型", required=False)
     return parser.parse_args()
