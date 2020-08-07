@@ -6,7 +6,36 @@
 import sys,os,zipfile,urllib.request,tarfile,argparse
 
 #sys.path.append(os.path.join(sys.path[0], "libromparse"))
-import undz,extract_android_ota_payload,unkdz,ozipdecrypt,rimg2sdat,sdat2img
+import undz,unkdz,ozipdecrypt,rimg2sdat,sdat2img,payload_dumper
+
+def get_saminfo(filename='AP_G9650ZCS6CSK2_CL17051143_QB26966166_REV01_user_low_ship_MULTI_CERT_meta_OS9.tar.md5',l=-1):
+    """
+    get samsumg rom info
+    :return: last line or None for empty file
+    """
+    try:
+        filesize = os.path.getsize(filename)
+        if filesize == 0:
+            return None
+        else:
+            with open(filename, 'rb') as fp:
+                offset = -8
+                while -offset < filesize:
+                    fp.seek(offset, 2)
+                    lines = fp.readlines()
+                    if len(lines) >= 2:
+                        print('a')
+                        return lines[l]
+                    else:
+                        offset *= 2
+                fp.seek(0)
+                lines = fp.readlines()
+                print('b')
+                return lines[l]
+    except FileNotFoundError:
+        print(filename + ' 未找到!')
+        return None
+
 class adbshellpyinformation():
     import platform
     p=platform.system()
@@ -31,39 +60,92 @@ class rominformation:
     1.无效文件路径
     2.不支持格式
     3.线刷包找到
-    4.卡刷包找到
+    4.卡刷包找到 ROM
+    5.卡刷包找到 flashable
     '''
     type=None #1功能性卡刷包(如opengapps) 2ROM卡刷包 3线刷包
     def __init__(self,file=''):
         print('正在处理ROM信息...')
         '''获取ROM信息 输入的文件可以是线刷包,也可以是卡刷包'''
-        if os.path.exists(file)==False:
+        size=os.path.getsize(file)
+        if os.path.exists(file)==False or size==0:
             print('E:请选择一个正确的文件!!!')
             self.flag=1#无效文件路径
             return
-        if zipfile.is_zipfile(file)==False:
+        if file.find('payload.bin')>-1:
+            self.abflag=True
             self.flag=3
-            self.type=3
-            if file.find('.ozip') > -1:self.ozip=True
-            if file.find('.dz') > -1:self.lgkd=True
-            if file.find('.kdz') > -1:self.lgkdz=True
-            if file.find('.tar.md5') > -1 and tarfile.is_tarfile(file):self.samsumgodinfile=True
+            print('发现A/B(System As Root)更新文件(安卓10动态分区)')
             return
+        if zipfile.is_zipfile(file)==False:
+            if file.find('.kdz') > -1:
+                print('May:发现LG .kdz文件!\n正在测试是否为 .kdz文件...')
+                if lg_kd_kdz(file).islgkdzfile():
+                    self.lgkdz=True
+                    self.flag=3
+                    self.type=3
+                    print('发现LG .kdz文件!')
+                    return
+                else:
+                    print('这个文件可能不是LG .kdz文件?')
+                    self.flag=2
+                    return
+            if file.find('.dz') > -1:
+                print('May:发现LG .dz文件!\n正在测试是否为 .dz文件...')
+                if lg_kd_kdz(file).islgdzfile():
+                    self.lgkd=True
+                    self.flag=3
+                    self.type=3  
+                    print('发现LG .dz文件!')
+                else:
+                    print('这个文件可能不是LG .dz文件?')
+                    self.flag=2                    
+                    return
+            print('无效不可读格式?')
+            self.flag=2
+            return
+        if file.find('.ozip') > -1 and zipfile.is_zipfile(file)==True:
+            with open(file,'rb') as fr:
+                magic=fr.read(12)
+                if magic==b"OPPOENCRYPT!" or magic[:2]==b"PK":
+                    self.ozip=True
+                    print('发现OPPO OZIP! 需要解密后才能读取ROM信息')
+                fr.close()
+                return
+            print('这个ROM可能不是OPPO OZIP?!')
+        if file.find('.tar.md5') > -1 and tarfile.is_tarfile(file):
+            self.samsumgodinfile=True
+            a=str(get_saminfo(file))
+            if a:
+                a=a.replace("b'",'')
+                a=a.replace(".tar\\n'",'')
+                li=a.split(' ')
+                a=li[2].split('_')
+                print('ROM类型:'+a[0]+'\n版本:'+a[1]+'\n发行标志:'+a[5]+'\n固件类型:offical')
+                print('发现三星odin线刷文件!')
+                return
+            print('May:发现三星odin线刷文件?!')
         if zipfile.is_zipfile(file)==False:
             print('E:不支持的格式!!!!')
             self.flag=2
             return
+        self.file=file
+        z=zipfile.ZipFile(file)
         self.l=z.namelist()
         self.flag=4
         #z.close()
         if 'system.img' in self.l:
             self.olnyimg=True
+
         if 'system/framework/framework.jar' in self.l:
             self.onlyfolder=True
+
         if 'system.new.dat.br' in self.l and 'system.transfer.list' in self.l:
             self.brotil=True
+
         if 'system.new.dat' in self.l and 'system.transfer.list' in self.l:
             self.newdat=True
+
         if 'system.transfer.list' in self.l:
             z.extract('system.transfer.list')
             f = open('system.transfer.list', 'r')
@@ -81,20 +163,47 @@ class rominformation:
             elif v == 4:
                 print('Android Nougat 7.x / Oreo 8.x 或更高版本检测到!\n')
                 self.androidVersion='Nougat 7.x or higher API 24+'
+
         if 'payload.bin' in self.l:
             self.abflag=True
+            self.flag=4
+            print('发现A/B(System As Root)更新文件(安卓10动态分区)')
+            if 'META-INF/com/android/android/metadata' in self.l:
+                z.extract('META-INF/com/android/android/metadata')
+                f=open('META-INF/com/android/android/metadata')
+                l=[]
+                for i in f:l.append(i.strip())
+                f.close()
+                os.remove('META-INF/com/android/android/metadata')
+                for i in l:
+                    x=i.split('=')
+                    if x[0]=='post-build':
+                        text=x[1]
+                        self.info=text.split('/')
+                        if len(self.info)==6:
+                            print('ROM制造商:'+self.info[0]+'\n手机代号:'+self.info[1]+'\n版本:'+self.info[2]+'\nAndroid开发版本:'+self.info[3]+'\n固件版本:'+self.info[4]+'\n发行标志:'+self.info[5])
+                            z.close()
+                            return
+                        else:
+                            print('您的设备指纹可能已经被修改,无法获取ROM信息!!!')
+            else:
+                print('metadata文件不存在?!')
+                z.close()
+                return
+
         for names in self.l:#prop获取Android版本
-            if names.find('*.prop') > -1:
+            if names.find('build.prop') > -1:
                 try:z.extract(names)
                 except:pass
-                if os.path.exists('system.prop'):
-                    f=open('system.prop')
+                if os.path.exists(names):
+                    f=open(names)
                     l=[]
                     for i in f:l.append(i.strip())
                     f.close()
-                    os.remove('system.prop')
+                    os.remove(names)
                     for i in l:
                         x=i.split('=')
+                        '''
                         if x[0]=='ro.build.version.sdk':
                             try:
                                 sdk=int(x[1])
@@ -111,24 +220,46 @@ class rominformation:
                                 elif sdk ==30:self.androidVersion='R 11.0'
                                 self.androidVersion=self.androidVersion+ ' API: '+x[1]
                             except:print('E:你目前处理的ROM似乎是开发者内侧版或被修改成了错误的值.')
+                        '''
+                        if x[0]=='ro.build.fingerprint':#Android 指纹库
+                            text=x[1]
+                            self.info=text.split('/')
+                            if len(self.info)==6:
+                                print('ROM制造商:'+self.info[0]+'\n手机代号:'+self.info[1]+'\n版本:'+self.info[2]+'\nAndroid开发版本:'+self.info[3]+'\n固件版本:'+self.info[4]+'\n发行标志:'+self.info[5])
+                                z.close()
+                                return
+                            else:
+                                print('您的设备指纹可能已经被修改,无法获取ROM信息!!!')
+
         if 'META-INF/com/google/android/updater-script' in self.l:
             z.extract('META-INF/com/google/android/updater-script')
-            f=open('updater-script')
+            f=open('META-INF/com/google/android/updater-script')
             l=[]
             for i in f:l.append(i.strip())
             f.close()
-            os.remove('updater-script')
+            os.remove('META-INF/com/google/android/updater-script')
             for i in l:
                 if 'ui_print("Target:' in i:
                     i=i.replace('ui_print("Target:','')
                     i=i.replace('");','')
                     i=i.replace(' ','')
                     self.info=i.split('/')
+                    if len(self.info)==6:
+                        print('ROM制造商:'+self.info[0]+'\n手机代号:'+self.info[1]+'\n版本:'+self.info[2]+'\nAndroid开发版本:'+self.info[3]+'\n固件版本:'+self.info[4]+'\n发行标志:'+self.info[5])
+                        z.close()
+                        return
+                if (i.find('update-binary') > -1 and i.find('ummy') > -1) or  i.find('#MAGISK') > -1:
+                    self.flag=5
+                    print('发现该压缩包为功能性卡刷包!(Magisk/oepngapps/ak2/ak3/etc.')
+                    z.close()
+                    return
+            print('W:无法从updater-script获取ROM信息!!')
+        z.close()
 
 def lz4install():
     if adbshellpyinformation().p=='Linux':
         os.system('sudo apt install lz4 -y')
-        os.system('sudo yum install lz4 -y')
+        os.system('sudo dnf install lz4 -y')
     else:
         if os.path.exists('lz4.exe')==False:
             urllib.request.urlretrieve('https://github.wuyanzheshui.workers.dev/lz4/lz4/releases/download/v1.9.2/lz4_win32_v1_9_2.zip','lz4.zip')
@@ -157,6 +288,25 @@ class lg_kd_kdz():
         if os.path.exists(file)==False:
             print('E:无效文件路径!')
             return
+        self.file=file
+    def islgkdzfile(self):
+        kdz=unkdz.KDZFileTools()
+        kdz.kdzfile=self.file
+        try:
+            kdz.openFile(self.file)
+            l=kdz.getPartitions()
+            if len(l) !=0:return True
+            else:return False
+        except:return False
+
+    def islgdzfile(self):
+        dz=undz.DZFileTools()
+        try:
+            dz.dz_file=undz.UNDZFile(self.file)
+            dz.cmdListPartitions()
+            return True
+        except:return False
+            #dz.
 
 class unpackrom():
     file=''
@@ -164,17 +314,23 @@ class unpackrom():
     def __init__(self,file,rominfo,unpacktodir=1,check=0):
         '''file:inputfile unpacktodir 0/1 0:Only run onec ;1 only to system dir check:lib 0/1'''
         self.rominfo=rominfo
-        self.file=file
+        if file==False:self.file=rominfo.file
+        else:self.file=file
         self.unpacktodir=unpacktodir
         if check==1:
-            try:import brotli,Crypto.Cipher,binascii,stat,docopt
-            except:
-                print('正在安装依赖...')
-                os.system('pip3 install brotli Crypto binascii stat docopt')
-        if rominfo.abflag==True:self.abunpack()
-        if rominfo.samsumgodin==True:self.samsumg_tar()
-        if rominfo.lgkdz==True:self.lg_kdz()
-
+            print('正在安装依赖...')
+            import install_requirements
+        a=input('ROM解析完成.是否解包?y/n>>>')
+        if a=='y':
+            pass
+            '''
+            if rominfo.abflag==True:self.abunpack()
+            if rominfo.samsumgodin==True:self.samsumg_tar()
+            if rominfo.lgkdz==True:self.lg_kdz()
+            if rominfo.ozip==True:self.oppo_ozip()
+            '''
+        elif a=='n':print('用户取消')
+    
     def samsumg_tar(self):
         tar=tarfile.open(self.file)
         tar.extractall(path='rom')
@@ -293,15 +449,15 @@ def parseArgs():
     return parser.parse_args()
 def main(args=None):
     if os.path.exists('rom')==False:os.mkdir('rom')
-    if args.f:rom=rominformation(args.f)
+    if args.file:rom=rominformation(args.file)
     else:rom=rominformation(input('请选择一个处理的ROM>>>'))
-    if args.t=='kdz':rom.lgkdz=True
-    elif args.t=='dz':rom.lgkd=True
-    elif args.t=='samsumgodin':rom.samsumgodinfile=True
-    elif args.t=='abota':rom.abflag=True
-    elif args.t=='ozip':rom.ozip=True
-    elif args.t=='flashable':pass
-    unpackrom(args.f,rom)
+    if args.type=='kdz':rom.lgkdz=True
+    elif args.type=='dz':rom.lgkd=True
+    elif args.type=='samsumgodin':rom.samsumgodinfile=True
+    elif args.type=='abota':rom.abflag=True
+    elif args.type=='ozip':rom.ozip=True
+    elif args.type=='flashable':pass
+    unpackrom(args.file,rom)
 if __name__ == '__main__':
     args=parseArgs()
     main(args)

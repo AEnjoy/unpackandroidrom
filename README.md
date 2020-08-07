@@ -15,10 +15,11 @@
 本项目引用的项目列表:
 
 oppoozip:https://github.com/tahirtaous/ozip2zip
-extract_android_ota_payload:https://github.com/cyxx/extract_android_ota_payload
+~~extract_android_ota_payload:https://github.com/cyxx/extract_android_ota_payload~~
 sdat2img:https://github.com/xpirt/sdat2img
 rimg2sdat:https://github.com/jazchen/rimg2sdat
 LGKDZ:https://github.com/randomstuffpaul/kdztools
+PayloadDumperOnDocker:https://github.com/matze19999/PayloadDumperOnDocker
 
 运行环境需求:
 
