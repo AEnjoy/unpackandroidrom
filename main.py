@@ -564,6 +564,29 @@ def main(args=None):
     if args.quit:quiet=1
     unpackrom(args.file,rom)
 if __name__ == '__main__':
+    print('''
+    **********************************libunpakrom*****************************************
+    *                           Android ROM 智能处理工具箱 Sub版本                         *
+    *       支持市面上绝大部分Android手机的ROM解包,未来更新后还将支持ROM打包等操作         *
+    *       功能:                                                                         *
+    *                     ①OPPO OZIP解密                                                  *
+    *                     ②Android O+ A/B分区(System As Root) payload.bin 解包            *
+    *                     ③Android Q+ 真(假)动态分区payload.bin解包                        *
+    *                     ④Android L+ .new.dat, .new.dat.br 转换img                       *
+    *                     ⑤Android L+ 分区.img解包                                        *
+    *                     ⑥常规解包,卡刷包解包.                                            *
+    *                     ⑦部分ROM卡刷包支持直接读取ROM信息                                 *
+    *                     ⑧Samsung odin .tar.md5 文件解包/获取ROM信息                      *
+    *                      (仅官方.tar.md5文件支持) 解包.lz4→.img                          *
+    *                     ⑨LG KDZ / DZ 文件解包                                           *
+    *                     ⑩.tar线刷包解包                                                 *
+    *       支持文件格式:                                                                 *
+    *                     .img/.zip/.tar/.tar.gz/.tar.md5/.new.dat/.new.dat.br/          *
+    *                     .kdz/.dz/.ozip/payload.bin                                     *
+    *       项目地址:      https://github.com/AEnjoy/unpackandroidrom                     *
+    *                                                                                    *
+    **********************************libunpakrom*****************************************
+    ''')
     args=parseArgs()
     main(args)
     

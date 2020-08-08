@@ -20,7 +20,7 @@
 
 
 
-测试结果:
+测试结果:→[前往观赏测试图](pic)
 
 可以正常识别目前我见到的卡刷包
 
@@ -66,7 +66,7 @@ python3 main.py
 python clean_cache.py
 ```
 
-
+![img](pic/home.png)
 
 本项目引用的项目(文件)列表及来源:
 
