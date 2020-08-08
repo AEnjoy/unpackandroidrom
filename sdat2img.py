@@ -19,7 +19,7 @@
 from __future__ import print_function
 import sys, os, errno
 
-def main(TRANSFER_LIST_FILE, NEW_DATA_FILE, OUTPUT_IMAGE_FILE):
+def main(TRANSFER_LIST_FILE, NEW_DATA_FILE, OUTPUT_IMAGE_FILE,quiet=1):#quiet:0:enable 1:disable
     __version__ = '1.2'
 
     if sys.hexversion < 0x02070000:
@@ -30,7 +30,8 @@ def main(TRANSFER_LIST_FILE, NEW_DATA_FILE, OUTPUT_IMAGE_FILE):
         input('按 ENTER 退出...')
         sys.exit(1)
     else:
-        print('sdat2img Version: {}\n'.format(__version__))
+        if quiet==1:
+            print('sdat2img Version: {}\n'.format(__version__))
 
     def rangeset(src):
         src_set = src.split(',')
@@ -76,17 +77,17 @@ def main(TRANSFER_LIST_FILE, NEW_DATA_FILE, OUTPUT_IMAGE_FILE):
     BLOCK_SIZE = 4096
     
     version, new_blocks, commands = parse_transfer_list_file(TRANSFER_LIST_FILE)
-
-    if version == 1:
-        print('Android Lollipop 5.0 检测到!\n')
-    elif version == 2:
-        print('Android Lollipop 5.1 检测到!\n')
-    elif version == 3:
-        print('Android Marshmallow 6.x 检测到!\n')
-    elif version == 4:
-        print('Android Nougat 7.x / Oreo 8.x 检测到!\n')
-    else:
-        print('Unknown Android version!\n')
+    if quiet==1:
+        if version == 1:
+            print('Android Lollipop 5.0 检测到!\n')
+        elif version == 2:
+            print('Android Lollipop 5.1 检测到!\n')
+        elif version == 3:
+            print('Android Marshmallow 6.x 检测到!\n')
+        elif version == 4:
+            print('Android Nougat 7.x / Oreo 8.x 检测到!\n')
+        else:
+            print('Unknown Android version!\n')
 
     # Don't clobber existing files to avoid accidental data loss
     try:
@@ -109,8 +110,8 @@ def main(TRANSFER_LIST_FILE, NEW_DATA_FILE, OUTPUT_IMAGE_FILE):
                 begin = block[0]
                 end = block[1]
                 block_count = end - begin
-                print('复制 {} 区段到位置 {}...'.format(block_count, begin))
-
+                if quiet==1:
+                    print('复制 {} 区段到位置 {}...'.format(block_count, begin))
                 # Position output file
                 output_img.seek(begin*BLOCK_SIZE)
                 
@@ -119,7 +120,8 @@ def main(TRANSFER_LIST_FILE, NEW_DATA_FILE, OUTPUT_IMAGE_FILE):
                     output_img.write(new_data_file.read(BLOCK_SIZE))
                     block_count -= 1
         else:
-            print('跳过命令 {}...'.format(command[0]))
+            if quiet==1:
+                print('跳过命令 {}...'.format(command[0]))
 
     # Make file larger if necessary
     if(output_img.tell() < max_file_size):

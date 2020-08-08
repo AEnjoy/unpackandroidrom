@@ -64,13 +64,15 @@ def rmrf(path):
         else:
             shutil.rmtree(path, onerror=del_rw)
 
-def main():
+def main(file='None'):
     print ("ozipdecrypt 0.5 (c) B.Kerler 2017-2019")
-    if (len(sys.argv)!=2):
+    if (len(sys.argv)!=2) and os.path.exists(file)==False:
         print ("usage: ozipdecrypt.py [*.ozip]")
         exit(1)
+    try:file_input=sys.argv[1]
+    except IndexError:file_input=file
 
-    with open(sys.argv[1],'rb') as fr:
+    with open(file_input,'rb') as fr:
         magic=fr.read(12)
         if (magic==b"OPPOENCRYPT!"):
                 pk=False
@@ -88,7 +90,7 @@ def main():
                 print("未知的AES密钥，请先从Recovery获取解密密钥！!")
                 exit(1)
             ctx=AES.new(key,AES.MODE_ECB)
-            filename=sys.argv[1][:-4]+"zip"
+            filename=file_input[:-4]+"zip"
             with open(filename,'wb') as wf:
                 fr.seek(0x1050)
                 print("Decrypting...")
@@ -104,14 +106,14 @@ def main():
             print("DONE!!")
         else:
             testkey=True
-            with ZipFile(sys.argv[1],'r') as zipObj:
+            with ZipFile(file_input,'r') as zipObj:
                 if os.path.exists('temp'):
                     rmrf('temp')
                 os.mkdir('temp')
                 if os.path.exists('out'):
                     rmrf('out')
                 os.mkdir('out')
-                print("Extracting "+sys.argv[1])
+                print("Extracting "+file_input)
                 zipObj.extractall('temp')
                 for r, d, f in os.walk('temp'):
                     for file in f:

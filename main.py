@@ -3,10 +3,11 @@
 #   adbshellpy_libunpakrom
 #       By : 神郭
 #  Version : 1.0
-import sys,os,zipfile,urllib.request,tarfile,argparse
+import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4
 
 #sys.path.append(os.path.join(sys.path[0], "libromparse"))
 import undz,unkdz,ozipdecrypt,rimg2sdat,sdat2img,payload_dumper
+quiet=0 #0询问 1安静
 
 def get_saminfo(filename='AP_G9650ZCS6CSK2_CL17051143_QB26966166_REV01_user_low_ship_MULTI_CERT_meta_OS9.tar.md5',l=-1):
     """
@@ -37,16 +38,24 @@ def get_saminfo(filename='AP_G9650ZCS6CSK2_CL17051143_QB26966166_REV01_user_low_
         return None
 
 class adbshellpyinformation():
-    import platform
-    p=platform.system()
-    try:from adbshell_alpha import branch
-    except:
-        try:from adbshell import branch
-        except:branch='dev'
-    uselinuxpkgmanagertoinstalladb=None
-    adbfile=None
-    aapt=None
-    conf=None
+    '''
+    https://github.com/AEnjoy/adbshellpy/
+    '''
+    def __init__(self,uselinuxpkgmanagertoinstalladb=None,adbfile=None,aapt=None,conf=None):
+        import platform
+        self.p=platform.system()
+        try:
+            from adbshell_alpha import branch
+            self.branch=branch
+        except ImportError:
+            try:
+                from adbshell import branch
+                self.branch=branch
+            except ImportError:self.branch='dev'
+        self.uselinuxpkgmanagertoinstalladb=uselinuxpkgmanagertoinstalladb
+        self.adbfile=adbfile
+        self.aapt=aapt
+        self.conf=conf
 
 class rominformation:
     '''
@@ -64,6 +73,8 @@ class rominformation:
     5.卡刷包找到 flashable
     '''
     type=None #1功能性卡刷包(如opengapps) 2ROM卡刷包 3线刷包
+    flag=0
+    olnyimg,onlyfolder,brotil,newdat,samsumgodinfile,ozip,lgkd,lgkdz,abflag=False,False,False,False,False,False,False,False,False
     def __init__(self,file=''):
         print('正在处理ROM信息...')
         '''获取ROM信息 输入的文件可以是线刷包,也可以是卡刷包'''
@@ -72,6 +83,7 @@ class rominformation:
             print('E:请选择一个正确的文件!!!')
             self.flag=1#无效文件路径
             return
+        self.file=file
         if file.find('payload.bin')>-1:
             self.abflag=True
             self.flag=3
@@ -168,13 +180,13 @@ class rominformation:
             self.abflag=True
             self.flag=4
             print('发现A/B(System As Root)更新文件(安卓10动态分区)')
-            if 'META-INF/com/android/android/metadata' in self.l:
-                z.extract('META-INF/com/android/android/metadata')
-                f=open('META-INF/com/android/android/metadata')
+            if 'META-INF/com/android/metadata' in self.l:
+                z.extract('META-INF/com/android/metadata')
+                f=open('META-INF/com/android/metadata', encoding='UTF-8')
                 l=[]
                 for i in f:l.append(i.strip())
                 f.close()
-                os.remove('META-INF/com/android/android/metadata')
+                os.remove('META-INF/com/android/metadata')
                 for i in l:
                     x=i.split('=')
                     if x[0]=='post-build':
@@ -196,7 +208,7 @@ class rominformation:
                 try:z.extract(names)
                 except:pass
                 if os.path.exists(names):
-                    f=open(names)
+                    f=open(names, encoding='UTF-8')
                     l=[]
                     for i in f:l.append(i.strip())
                     f.close()
@@ -233,7 +245,7 @@ class rominformation:
 
         if 'META-INF/com/google/android/updater-script' in self.l:
             z.extract('META-INF/com/google/android/updater-script')
-            f=open('META-INF/com/google/android/updater-script')
+            f=open('META-INF/com/google/android/updater-script', encoding='UTF-8')
             l=[]
             for i in f:l.append(i.strip())
             f.close()
@@ -262,10 +274,12 @@ def lz4install():
         os.system('sudo dnf install lz4 -y')
     else:
         if os.path.exists('lz4.exe')==False:
-            urllib.request.urlretrieve('https://github.wuyanzheshui.workers.dev/lz4/lz4/releases/download/v1.9.2/lz4_win32_v1_9_2.zip','lz4.zip')
+            try:urllib.request.urlretrieve('https://github.wuyanzheshui.workers.dev/lz4/lz4/releases/download/v1.9.2/lz4_win32_v1_9_2.zip','lz4.zip')
+            except:pass
             z=zipfile.ZipFile('lz4.zip')
             z.extract('lz4.exe')
-            z.close()
+            z.close()            
+            os.remove('lz4.zip')
     return
 class lg_kd_kdz():
     def __init__(self,file):
@@ -311,21 +325,23 @@ class lg_kd_kdz():
         kdz=unkdz.KDZFileTools()
         kdz.kdzfile=self.file
         kdz.openFile(self.file)
-        kdz.outdir(os.getcwd())
+        kdz.outdir=os.getcwd()
+        kdz.partList=kdz.getPartitions()
         kdz.cmdExtractAll()
     def listkdz(self):#all
         kdz=unkdz.KDZFileTools()
         kdz.kdzfile=self.file
         kdz.openFile(self.file)
-        kdz.cmdListPartitions()        
+        kdz.cmdListPartitions()
 
 class unpackrom():
+    global quiet
     file=''
     unpacktodir=1
     def __init__(self,file,rominfo,unpacktodir=1,check=0):
         '''file:inputfile unpacktodir 0/1 0:Only run onec ;1 only to system dir check:lib 0/1'''
         self.rominfo=rominfo
-        if file=='':self.file=rominfo.file
+        if file!='':self.file=rominfo.file
         else:self.file=file
         self.unpacktodir=unpacktodir
         if check==1:
@@ -333,30 +349,35 @@ class unpackrom():
             import install_requirements
         a=input('ROM解析完成.是否解包?y/n>>>')
         if a=='y':
-            pass
             if rominfo.abflag==True and zipfile.is_zipfile(self.file)==True:self.unzip()
-            if rominfo.samsumgodin==True:self.samsumg_tar()
+            if rominfo.samsumgodinfile==True:self.samsumg_tar()
             if rominfo.lgkdz==True:self.lg_kdz()
             if rominfo.lgkd==True:self.lg_dz()
-            #if rominfo.ozip==True:self.oppo_ozip()
-            if rominfo.abflag==True:self.abunpack()#.bin            
+            if rominfo.flag==5 or rominfo.flag==4:self.unzip()
+            if rominfo.ozip==True:self.oppo_ozip()
+            if rominfo.abflag==True:self.abunpack()#.bin
         elif a=='n':print('用户取消')
     
     def samsumg_tar(self):
+        if quiet==0:
+            if input('是否解包SamsungTarFile?y/n>>>')=='n':return
         tar=tarfile.open(self.file)
         tar.extractall(path='rom')
         tar.close()
+        
         lz4install()
-        if adbshellpyinformation.p=='Windows':
-            os.system('for %%a in (rom\\*.lz4) do lz4 -d %%a')
-            os.system('for %%a in (rom\\*.lz4) do del /f/s/q %%a')
+        if platform.system()=='Windows':
+            os.system(r'for %a in (rom\*.lz4) do lz4 -d %a')
+            os.system(r'for %a in (rom\*.lz4) do del /f/s/q %a')
         else:
             os.system('find ./rom -name *.lz4  |xargs lz4 -d')
             os.system('find ./rom -name *.lz4  |xargs rm ')
-        if os.path.exists('/rom/system.img.ext4') and self.unpacktodir==1:
-            self.file='/rom/system.img.ext4'
+        if os.path.exists('rom/system.img.ext4') and self.unpacktodir==1:
+            self.file='rom/system.img.ext4'
             self.imgunpack()
     def lg_kdz(self):
+        if quiet==0:
+            if input('是否解包LG KDZ?y/n>>>')=='n':return        
         print('当a,b同时为y时,将列出kdz文件分区表并解包,否则当a=y,b=n时,将仅列出kdz内文件列表')
         a=input('a:是否仅列出.kdz分区列表?(默认n)y/n')
         b=input('b:是否解包kdz全部文件(默认y)?y/n')
@@ -365,30 +386,46 @@ class unpackrom():
         elif a=='y' and b=='n':lg_kd_kdz(self.file).listkdz()
     def lg_dz(self):pass
     def oppo_ozip(self):
-        pass
+        if quiet==0:
+            if input('是否解密oppo ozip?y/n>>>')=='n':return        
+        ozipdecrypt.main(self.file)
+        self.file=self.file.replace('.ozip','.zip')
+        z=zipfile.ZipFile(self.file)
+        if 'system.new.dat.br' in z.namelist() and 'system.transfer.list' in z.namelist():self.rominfo.brotil=True
+        else:self.rominfo.newdat=True
+        rominformation(self.file)
+        self.unzip()
     def unzip(self):#system.img
-        if info.flag==1:return
-        if info.flag==2:
-            #专属格式解包
-            pass
-        if self.rominfo.abflag==True and zipfile.is_zipfile(self.file)==True:
+        if self.rominfo.flag==1:
+            print('无效格式!!!')
+            sys.exit(1)
+        if quiet==0:
+            if input('是否解包卡刷包zip文件?y/n>>>')=='n':
+                print('取消.')
+                sys.exit(0)           
+        if self.rominfo.flag==5:
+            z=zipfile.ZipFile(self.file)
+            z.extractall(path='flashable')
+            z.close()
+            print('功能性卡刷包解包完成.输出目录:flashable')
+            print('Done.')
+            sys.exit(0)
+        if self.rominfo.abflag==True and zipfile.is_zipfile(self.file)==True:          
             z=zipfile.ZipFile(self.file)
             z.extract('payload.bin')
             z.close()
-            if os.path.exists('output')==False:os.mkdir('output')
-            payload_dumper.main('payload.bin')
-            if self.unpacktodir==1:
-                if os.path.exists('/output/system.img'):
-                    self.file='/output/system.img'
-                    self.imgunpack()
-                if os.path.exists('/output/system_a.img'):
-                    self.file='/output/system_a.img'
-                    self.imgunpack()                
-                if os.path.exists('/output/surper.img'):print('暂不支持动态分区!')
+            self.file='payload.bin'
+            self.abunpack()
+            print('Done.')
+            sys.exit(0)
         if self.rominfo.onlyfolder==True:
             z=zipfile.ZipFile(self.file)
-            z.extract('system')
+            for name in z.namelist() :
+                if name.find('system')==0:
+                    z.extract(name)
             z.close()
+            print('Done.')
+            sys.exit(0)
         if self.rominfo.olnyimg==True:
             z=zipfile.ZipFile(self.file)
             z.extract('system.img')
@@ -396,6 +433,8 @@ class unpackrom():
             if self.unpacktodir==1:
                 self.file='system.img'
                 self.imgunpack()
+            print('Done.')
+            sys.exit(0)
         if self.rominfo.brotil==True:
             z=zipfile.ZipFile(self.file)
             z.extract('system.transfer.list')
@@ -406,6 +445,8 @@ class unpackrom():
             if self.unpacktodir==1:
                 self.file='system.img'
                 self.imgunpack()
+            print('Done.')
+            sys.exit(0)
         if self.rominfo.newdat==True:
             z=zipfile.ZipFile(self.file)
             z.extract('system.transfer.list')
@@ -414,24 +455,37 @@ class unpackrom():
             self.newdatunpack()
             if self.unpacktodir==1:
                 self.file='system.img'
-                self.imgunpack()        
+                self.imgunpack()
+            print('Done.')
+            sys.exit(0)
         if self.unpacktodir==0:
             print('Done! 输出的到的目录: /')
             return
         else:pass
+
     def abunpack(self):
+        if quiet==0:
+            if input('是否解密payload.bin?y/n>>>')=='n':return
+        if os.path.exists('output')==False:os.mkdir('output')
         payload_dumper.main(self.file)
+        try:os.remove(self.file)
+        except:pass
         if self.unpacktodir==1:
-            if os.path.exists('/rom/system.img'):
-                self.file='/rom/system.img'
+            if os.path.exists('output/system.img'):
+                self.file='output/system.img'
                 self.imgunpack()
-            if os.path.exists('/rom/system_a.img'):
-                self.file='/rom/system_a.img'
-                self.imgunpack()                
-            if os.path.exists('/rom/surper.img'):print('暂不支持动态分区!')        
+            if os.path.exists('output/system_a.img'):
+                self.file='output/system_a.img'
+                self.imgunpack()
+            if os.path.exists('output/surper.img'):
+                self.file='output/surper.img'
+                print('W:动态分区有待测试!')
+                self.imgunpack()
     def imgunpack(self,flag=1):
         '''flag: 1mount 2unmount Linux'''
-        if adbshellpyinformation.p=='Linux':
+        if quiet==0:
+            if input('是否解包.img?y/n>>>')=='n':return              
+        if adbshellpyinformation().p=='Linux':
             if flag==1:
                 os.system('mkdir android-system-img')
                 os.system('sudo mount %s android-system-img'%self.file)
@@ -441,7 +495,7 @@ class unpackrom():
                 os.system('e2fsck -p -f '+self.file)
                 os.system('resize2fs -M '+self.file)
                 print('Done!: 保存的镜像 '+self.file)
-        if adbshellpyinformation.p=='Windows':
+        if adbshellpyinformation().p=='Windows':
             url='https://hub.fastgit.org/AEnjoy/adbshellpy/raw/master/Imgextractor.exe'
             if os.path.exists('Imgextractor.exe')==False:
                 try:urllib.request.urlretrieve(url,'Imgextractor.exe')
@@ -458,19 +512,27 @@ class unpackrom():
         #          DATE: 2018-10-27 10:33:21 CEST
         #       Chinese: 神郭
         #====================================================
-        sdat2img.main(TRANSFER_LIST_FILE,NEW_DATA_FILE,OUTPUT_IMAGE_FILE)
+        if quiet==0:
+            if input('是否转换.new.dat?y/n>>>')=='n':return              
+        sdat2img.main(TRANSFER_LIST_FILE,NEW_DATA_FILE,OUTPUT_IMAGE_FILE,0)
 
     def brotli(self,INPUT_FILE='system.new.dat.br',OUTPUT_FILE='system.new.dat',flag=1):
         import brotli as b
+        if quiet==0:
+            if input('是否转换.new.dat.br?y/n>>>')=='n':return           
         if flag==1:
-            f=open(INPUT_FILE)
+            '''
+            f=open(INPUT_FILE, 'rb')
             f=b.decompress(f.read())
             ofile=open(OUTPUT_FILE, 'wb')
             os.write(ofile,f)
             f.close()
             ofile.close()
             sys.exit()
+            '''
+            os.system('brotli -d '+ INPUT_FILE)
         if flag==2:
+            '''
             f=open(INPUT_FILE)
             f=b.compress(f.read())
             ofile=open(OUTPUT_FILE, 'wb')
@@ -478,14 +540,18 @@ class unpackrom():
             f.close()
             ofile.close()
             sys.exit()
+            '''
+            os.system('brotli -9 '+ INPUT_FILE)
         print('参数无效!')
 
 def parseArgs():
-    parser = argparse.ArgumentParser(description='ROM智能处理工具箱')
+    parser = argparse.ArgumentParser(description='System一键解包工具')
     parser.add_argument('-f', '--file', help='欲解包的ROM文件', action='store', required=False, dest='file')
     parser.add_argument("-t", "--type", type=str, choices=['kdz', 'dz', 'samsumgodin','abota','flashable','ozip'], help="强制指定输入的文件ROM的类型", required=False)
+    parser.add_argument('-q', '--quiet', help='安静模式 不询问yes', action='store_true', required=False, dest='quit')
     return parser.parse_args()
 def main(args=None):
+    global quiet
     if os.path.exists('rom')==False:os.mkdir('rom')
     if args.file:rom=rominformation(args.file)
     else:rom=rominformation(input('请选择一个处理的ROM>>>'))
@@ -494,7 +560,8 @@ def main(args=None):
     elif args.type=='samsumgodin':rom.samsumgodinfile=True
     elif args.type=='abota':rom.abflag=True
     elif args.type=='ozip':rom.ozip=True
-    elif args.type=='flashable':pass
+    elif args.type=='flashable':rom.flag=5
+    if args.quit:quiet=1
     unpackrom(args.file,rom)
 if __name__ == '__main__':
     args=parseArgs()

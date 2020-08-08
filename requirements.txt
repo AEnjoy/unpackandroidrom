@@ -9,3 +9,4 @@ zstandard
 binascii
 google
 checker
+lz4
