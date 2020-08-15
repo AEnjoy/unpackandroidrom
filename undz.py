@@ -1061,7 +1061,7 @@ class DZFileTools:
                 # Save the header for later reconstruction
                 self.dz_file.saveHeader(cmd.dzfile)
         
-        def mainbyclass(self,dzfile,outdir=os.getcwd(),batchMode=False,listOnly=False,extractChunkfile=False,extractChunk=False,extractSlice=False,extractImage=True,files=[]):
+        def mainbyclass(self,dzfile,outdir=os.getcwd(),batchMode=False,listOnly=False,extractChunkfile=False,extractChunk=False,extractSlice=False,extractImage=True,files=[],onlysystemimg=True):
                 self.outdir = outdir
                 self.dz_file = UNDZFile(dzfile)
                 if listOnly:
@@ -1070,7 +1070,10 @@ class DZFileTools:
                 #files=['10','13']→分区标号
                 if extractSlice:self.cmdExtractSlice(files)
                 elif extractChunkfile:self.cmdExtractChunkfile(files)
-                elif extractImage:self.cmdExtractImage(files)
+                elif extractImage:
+                        if onlysystemimg:
+                                pass
+                        self.cmdExtractImage(files)
                 elif extractChunk:self.cmdExtractChunk(files)
                 self.dz_file.saveHeader(dzfile)
                 pass

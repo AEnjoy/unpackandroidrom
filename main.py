@@ -3,7 +3,11 @@
 #   adbshellpy_libunpakrom
 #       By : 神郭
 #  Version : 1.0
-import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4
+try:import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4.frame,glob2
+except ImportError:
+    print('E:请执行install_requirements.py后再执行main!')
+    input('按Enter键退出')
+    exit(1)
 
 #sys.path.append(os.path.join(sys.path[0], "libromparse"))
 import undz,unkdz,ozipdecrypt,rimg2sdat,sdat2img,payload_dumper
@@ -74,9 +78,9 @@ class rominformation:
     '''
     type=None #1功能性卡刷包(如opengapps) 2ROM卡刷包 3线刷包
     flag=0
-    olnyimg,onlyfolder,brotil,newdat,samsumgodinfile,ozip,lgkd,lgkdz,abflag=False,False,False,False,False,False,False,False,False
+    olnyimg,onlyfolder,brotil,newdat,samsumgodinfile,ozip,lgkd,lgkdz,abflag,miuitar=False,False,False,False,False,False,False,False,False,False
     def __init__(self,file=''):
-        print('正在处理ROM信息...')
+        print('正在处理ROM信息...该过程需要1s-2min分钟不等')
         '''获取ROM信息 输入的文件可以是线刷包,也可以是卡刷包'''
         size=os.path.getsize(file)
         if os.path.exists(file)==False or size==0:
@@ -91,7 +95,7 @@ class rominformation:
             return
         if zipfile.is_zipfile(file)==False:
             if file.find('.kdz') > -1:
-                print('May:发现LG .kdz文件!\n正在测试是否为 .kdz文件...')
+                print('Maybe:发现LG .kdz文件!\n正在测试是否为 .kdz文件...')
                 if lg_kd_kdz(file).islgkdzfile():
                     self.lgkdz=True
                     self.flag=3
@@ -103,7 +107,7 @@ class rominformation:
                     self.flag=2
                     return
             if file.find('.dz') > -1:
-                print('May:发现LG .dz文件!\n正在测试是否为 .dz文件...')
+                print('Maybe:发现LG .dz文件!\n正在测试是否为 .dz文件...')
                 if lg_kd_kdz(file).islgdzfile():
                     self.lgkd=True
                     self.flag=3
@@ -136,7 +140,23 @@ class rominformation:
                 print('ROM类型:'+a[0]+'\n版本:'+a[1]+'\n发行标志:'+a[5]+'\n固件类型:offical')
                 print('发现三星odin线刷文件!')
                 return
-            print('May:发现三星odin线刷文件?!')
+            print('Maybe:发现三星odin线刷文件?!')
+        if file.find('.tgz') > -1 and tarfile.is_tarfile(file):
+            #MIUI
+            tar = tarfile.open(file, "r:gz")
+            l=tar.getnames()
+            for a in l:
+                if a.find('system.img')>-1 :
+                    self.flag=3
+                    self.miuitar=True
+                    print('Maybe:MIUI 线刷包找到')
+                    return
+                elif a.find('super.img')>-1:
+                    self.flag=3
+                    self.miuitar=True
+                    self.super=True
+                    print('Maybe:MIUI 线刷包找到')                    
+                    return
         if zipfile.is_zipfile(file)==False:
             print('E:不支持的格式!!!!')
             self.flag=2
@@ -333,6 +353,17 @@ class lg_kd_kdz():
         kdz.kdzfile=self.file
         kdz.openFile(self.file)
         kdz.cmdListPartitions()
+    def unpackdz(self,mode=1):
+        '''
+        mode:
+        1 USE COMMAND TO EXTRACT
+        2 USE PYTHON FUNCTION
+        '''
+        if mode==2:
+            dz=undz.DZFileTools()
+            dz.mainbyclass(self.file,'rom')
+        elif mode==1:
+            os.system('python undz.py -f %s -i -d rom'%self.file)            
 
 class unpackrom():
     global quiet
@@ -350,6 +381,7 @@ class unpackrom():
         a=input('ROM解析完成.是否解包?y/n>>>')
         if a=='y':
             if rominfo.abflag==True and zipfile.is_zipfile(self.file)==True:self.unzip()
+            if rominfo.miuitar==True:self.miui_tar()
             if rominfo.samsumgodinfile==True:self.samsumg_tar()
             if rominfo.lgkdz==True:self.lg_kdz()
             if rominfo.lgkd==True:self.lg_dz()
@@ -357,14 +389,57 @@ class unpackrom():
             if rominfo.ozip==True:self.oppo_ozip()
             if rominfo.abflag==True:self.abunpack()#.bin
         elif a=='n':print('用户取消')
-    
+    def miui_tar(self):
+        if quiet==0:
+            if input('是否解包XiaomiTarFile?y/n>>>')=='n':return
+        tar=tarfile.open(self.file)
+        tar.extractall(path='rom')
+        tar.close()
+        print('Done.')
+        '''
+        items = os.listdir('rom')
+        imgfile = glob2.glob('rom/*/super.img')
+        if len(imgfile)==0:
+            imgfile = glob2.glob('rom/*/system.img')
+        if len(imgfile)==1:
+            self.file=imgfile[0]
+            self.imgunpack()
+        '''
     def samsumg_tar(self):
         if quiet==0:
             if input('是否解包SamsungTarFile?y/n>>>')=='n':return
         tar=tarfile.open(self.file)
         tar.extractall(path='rom')
         tar.close()
-        
+        #lz4File
+        lz4file = glob2.glob('rom/*.lz4')
+        for a in lz4file:
+            with open(a, 'rb') as infile:
+                b=a.replace('.img.lz4','.img')
+                if b.find('.img.ext4.lz4')>-1:
+                    if quiet==0:
+                        c=input('文件系统格式发现:.img.ext4.lz4 该格式解包可能会导致系统内存溢出,是否使用外部解包器?默认y[y/n]>>>')
+                        if c=='y' or c=='':
+                            lz4install()
+                            os.system('lz4 -d '+a)
+                        elif c=='n':
+                            b=a.replace('.img.ext4.lz4','.img')
+                            data = infile.read()
+                            outfile = open(b, 'wb')
+                            data = lz4.frame.decompress(data)
+                            outfile.write(data)
+                            outfile.close()
+                    elif quiet==1:
+                        lz4install()
+                        os.system('lz4 -d '+a)
+                else:
+                    data = infile.read()
+                    outfile = open(b, 'wb')
+                    data = lz4.frame.decompress(data)
+                    outfile.write(data)
+                    outfile.close()
+            infile.close()
+        '''
         lz4install()
         if platform.system()=='Windows':
             os.system(r'for %a in (rom\*.lz4) do lz4 -d %a')
@@ -372,19 +447,32 @@ class unpackrom():
         else:
             os.system('find ./rom -name *.lz4  |xargs lz4 -d')
             os.system('find ./rom -name *.lz4  |xargs rm ')
+        '''
+        if os.path.exists('rom/system.img') and self.unpacktodir==1:
+            self.file='rom/system.img'
+            self.imgunpack()
         if os.path.exists('rom/system.img.ext4') and self.unpacktodir==1:
             self.file='rom/system.img.ext4'
-            self.imgunpack()
+            self.imgunpack()        
     def lg_kdz(self):
         if quiet==0:
             if input('是否解包LG KDZ?y/n>>>')=='n':return        
-        print('当a,b同时为y时,将列出kdz文件分区表并解包,否则当a=y,b=n时,将仅列出kdz内文件列表')
-        a=input('a:是否仅列出.kdz分区列表?(默认n)y/n')
-        b=input('b:是否解包kdz全部文件(默认y)?y/n')
-        c=input('c:欲解包的分区序号:(默认全部Enter)[暂不可用]')
+            print('当a,b同时为y时,将列出kdz文件分区表并解包,否则当a=y,b=n时,将仅列出kdz内文件列表')
+            a=input('a:是否仅列出.kdz分区列表?(默认n)y/n')
+            b=input('b:是否解包kdz全部文件(默认y)?y/n')
+            c=input('c:欲解包的分区序号:(默认全部Enter)[暂不可用]')
+        elif quiet==1:
+            a,b='y','y'
         if a=='y' and b=='y':lg_kd_kdz(self.file).unpackkdz()
         elif a=='y' and b=='n':lg_kd_kdz(self.file).listkdz()
-    def lg_dz(self):pass
+    def lg_dz(self):
+        if quiet==0:
+            if input('是否解包LG DZ?y/n>>>')=='n':return
+            a=int(input('请选择解包模式:1.command 2.func:'))
+        elif quiet==1:
+            a=1
+        lg_kd_kdz(self.file).unpackdz(a)
+
     def oppo_ozip(self):
         if quiet==0:
             if input('是否解密oppo ozip?y/n>>>')=='n':return        
@@ -484,7 +572,8 @@ class unpackrom():
     def imgunpack(self,flag=1):
         '''flag: 1mount 2unmount Linux'''
         if quiet==0:
-            if input('是否解包.img?y/n>>>')=='n':return              
+            if input('是否解包.img?y/n>>>')=='n':return
+        if self.file.find('super.img')>-1:print('W:动态分区支持未测试.')
         if adbshellpyinformation().p=='Linux':
             if flag==1:
                 os.system('mkdir android-system-img')
@@ -521,27 +610,21 @@ class unpackrom():
         if quiet==0:
             if input('是否转换.new.dat.br?y/n>>>')=='n':return           
         if flag==1:
-            '''
-            f=open(INPUT_FILE, 'rb')
-            f=b.decompress(f.read())
-            ofile=open(OUTPUT_FILE, 'wb')
-            os.write(ofile,f)
-            f.close()
-            ofile.close()
-            sys.exit()
-            '''
-            os.system('brotli -d '+ INPUT_FILE)
+            with open(INPUT_FILE, 'rb') as infile:
+                data = infile.read()
+                outfile = open(OUTPUT_FILE, 'wb')
+                data = b.decompress(data)
+                outfile.write(data)
+                outfile.close()
+                infile.close()
         if flag==2:
-            '''
-            f=open(INPUT_FILE)
-            f=b.compress(f.read())
-            ofile=open(OUTPUT_FILE, 'wb')
-            os.write(ofile,f)
-            f.close()
-            ofile.close()
-            sys.exit()
-            '''
-            os.system('brotli -9 '+ INPUT_FILE)
+            with open(INPUT_FILE, 'rb') as infile:
+                data = infile.read()
+                outfile = open(OUTPUT_FILE, 'wb')
+                data = b.compress(data)
+                outfile.write(data)
+                outfile.close()
+                infile.close()
         print('参数无效!')
 
 def parseArgs():
@@ -582,7 +665,7 @@ if __name__ == '__main__':
     *                     ⑩.tar线刷包解包                                                 *
     *       支持文件格式:                                                                 *
     *                     .img/.zip/.tar/.tar.gz/.tar.md5/.new.dat/.new.dat.br/          *
-    *                     .kdz/.dz/.ozip/payload.bin                                     *
+    *                     .kdz/.dz/.ozip/payload.bin/.tgz                                *
     *       项目地址:      https://github.com/AEnjoy/unpackandroidrom                     *
     *                                                                                    *
     **********************************libunpakrom*****************************************
