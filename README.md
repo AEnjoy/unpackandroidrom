@@ -60,10 +60,18 @@ python3 main.py
 
 (提交bug -_-||,无情嘲讽)
 
-可选操作:定期执行
+可选操作:
+
+定期执行-清理缓存
 
 ```
 python clean_cache.py
+```
+
+定期执行-项目同步
+
+```
+git pull
 ```
 
 ![img](pic/home.png)
@@ -85,12 +93,12 @@ Python2.7/Python3.6+
 
 Changes:
 
-'''
+```
 1→2:2020-8-15 21:58:28
 1.更新lz4,brotli解包代码
 2.更新依赖(可能需要重新运行install_requirements.py)
 3.LG DZ解包支持(之前只支持查看)
 4.MIUI线刷包解包
-'''
+```
 
 根据上游开源,本项目开源许可协议为GNU/GPL3
