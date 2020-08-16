@@ -94,6 +94,9 @@ Python2.7/Python3.6+
 Changes:
 
 ```
+2→2.1:2020-8-16 13:19:14
+1.修复了一个小bug
+
 1→2:2020-8-15 21:58:28
 1.更新lz4,brotli解包代码
 2.更新依赖(可能需要重新运行install_requirements.py)

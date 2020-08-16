@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #   adbshellpy_libunpakrom
 #       By : 神郭
-#  Version : 1.0
+#  Version : 2.1
 try:import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4.frame,glob2
 except ImportError:
     print('E:请执行install_requirements.py后再执行main!')
@@ -10,7 +10,12 @@ except ImportError:
     exit(1)
 
 #sys.path.append(os.path.join(sys.path[0], "libromparse"))
-import undz,unkdz,ozipdecrypt,rimg2sdat,sdat2img,payload_dumper
+try:import undz,unkdz,ozipdecrypt,rimg2sdat,sdat2img,payload_dumper
+except ImportError:
+    print('E:请执行install_requirements.py后再执行main!')
+    input('按Enter键退出')
+    exit(1)
+    
 quiet=0 #0询问 1安静
 
 def get_saminfo(filename='AP_G9650ZCS6CSK2_CL17051143_QB26966166_REV01_user_low_ship_MULTI_CERT_meta_OS9.tar.md5',l=-1):
@@ -200,28 +205,29 @@ class rominformation:
             self.abflag=True
             self.flag=4
             print('发现A/B(System As Root)更新文件(安卓10动态分区)')
-            if 'META-INF/com/android/metadata' in self.l:
-                z.extract('META-INF/com/android/metadata')
-                f=open('META-INF/com/android/metadata', encoding='UTF-8')
-                l=[]
-                for i in f:l.append(i.strip())
-                f.close()
-                os.remove('META-INF/com/android/metadata')
-                for i in l:
-                    x=i.split('=')
-                    if x[0]=='post-build':
-                        text=x[1]
-                        self.info=text.split('/')
-                        if len(self.info)==6:
-                            print('ROM制造商:'+self.info[0]+'\n手机代号:'+self.info[1]+'\n版本:'+self.info[2]+'\nAndroid开发版本:'+self.info[3]+'\n固件版本:'+self.info[4]+'\n发行标志:'+self.info[5])
-                            z.close()
-                            return
-                        else:
-                            print('您的设备指纹可能已经被修改,无法获取ROM信息!!!')
-            else:
-                print('metadata文件不存在?!')
-                z.close()
-                return
+
+        if 'META-INF/com/android/metadata' in self.l:
+            z.extract('META-INF/com/android/metadata')
+            f=open('META-INF/com/android/metadata', encoding='UTF-8')
+            l=[]
+            for i in f:l.append(i.strip())
+            f.close()
+            os.remove('META-INF/com/android/metadata')
+            for i in l:
+                x=i.split('=')
+                if x[0]=='post-build':
+                    text=x[1]
+                    self.info=text.split('/')
+                    if len(self.info)==6:
+                        print('ROM制造商:'+self.info[0]+'\n手机代号:'+self.info[1]+'\n版本:'+self.info[2]+'\nAndroid开发版本:'+self.info[3]+'\n固件版本:'+self.info[4]+'\n发行标志:'+self.info[5])
+                        z.close()
+                        return
+                    else:
+                        print('您的设备指纹可能已经被修改,无法获取ROM信息!!!')
+        else:
+            print('metadata文件不存在?!')
+            z.close()
+            
 
         for names in self.l:#prop获取Android版本
             if names.find('build.prop') > -1:
@@ -290,16 +296,24 @@ class rominformation:
 
 def lz4install():
     if adbshellpyinformation().p=='Linux':
-        os.system('sudo apt install lz4 -y')
-        os.system('sudo dnf install lz4 -y')
+        '''
+        if os.path.exists('lz4')==False:
+            try:urllib.request.urlretrieve('https://hub.fastgit.org/AEnjoy/unpackandroidrom/raw/master/lz4','lz4')
+            except:pass
+            os.system('chmod 777 lz4')
+        '''
+        os.system('su -c apt install lz4 -y')
+        os.system('su -c dnf install lz4 -y')
     else:
         if os.path.exists('lz4.exe')==False:
-            try:urllib.request.urlretrieve('https://github.wuyanzheshui.workers.dev/lz4/lz4/releases/download/v1.9.2/lz4_win32_v1_9_2.zip','lz4.zip')
+            try:urllib.request.urlretrieve('https://hub.fastgit.org/AEnjoy/unpackandroidrom/raw/master/lz4.exe','lz4.exe')
             except:pass
+            '''
             z=zipfile.ZipFile('lz4.zip')
             z.extract('lz4.exe')
             z.close()            
             os.remove('lz4.zip')
+            '''
     return
 class lg_kd_kdz():
     def __init__(self,file):
@@ -396,15 +410,19 @@ class unpackrom():
         tar.extractall(path='rom')
         tar.close()
         print('Done.')
-        '''
         items = os.listdir('rom')
-        imgfile = glob2.glob('rom/*/super.img')
+        if len(items)==1:
+            dir='rom/'+items[1]+'/'
+            items = os.listdir(dir)
+            for i in items:
+                if i.find('images')>-1:dir=dir+i+'/'
+        imgfile = glob2.glob(dir+'/super.img')
         if len(imgfile)==0:
-            imgfile = glob2.glob('rom/*/system.img')
+            imgfile = glob2.glob(dir+'/system.img')
         if len(imgfile)==1:
             self.file=imgfile[0]
             self.imgunpack()
-        '''
+        
     def samsumg_tar(self):
         if quiet==0:
             if input('是否解包SamsungTarFile?y/n>>>')=='n':return
@@ -630,13 +648,17 @@ class unpackrom():
 def parseArgs():
     parser = argparse.ArgumentParser(description='System一键解包工具')
     parser.add_argument('-f', '--file', help='欲解包的ROM文件', action='store', required=False, dest='file')
-    parser.add_argument("-t", "--type", type=str, choices=['kdz', 'dz', 'samsumgodin','abota','flashable','ozip'], help="强制指定输入的文件ROM的类型", required=False)
+    parser.add_argument("-t", "--type", type=str, choices=['kdz', 'dz', 'samsumgodin','abota','flashable','ozip','miuitar','newdat','newdatbr'], help="强制指定输入的文件ROM的类型", required=False)
     parser.add_argument('-q', '--quiet', help='安静模式 不询问yes', action='store_true', required=False, dest='quit')
+    parser.add_argument('-v', '--version', help='显示程序版本信息', action='store_true', required=False, dest='version')
     return parser.parse_args()
 def main(args=None):
     global quiet
     if os.path.exists('rom')==False:os.mkdir('rom')
     if args.file:rom=rominformation(args.file)
+    if args.version:
+        print('Android ROM Unpack Tool \r\n 安卓ROM解包工具 \r\n Version:2.1 \r\n BuildDate: 2020-8-16 13:16:41')
+        sys.exit(0)
     else:rom=rominformation(input('请选择一个处理的ROM>>>'))
     if args.type=='kdz':rom.lgkdz=True
     elif args.type=='dz':rom.lgkd=True
@@ -644,12 +666,17 @@ def main(args=None):
     elif args.type=='abota':rom.abflag=True
     elif args.type=='ozip':rom.ozip=True
     elif args.type=='flashable':rom.flag=5
+    elif args.type=='miuitar':
+        rom.miuitar=True
+        rom.flag=3
+    elif args.type=='newdat':rom.newdat=True
+    elif args.type=='newdatbr':rom.brotil=True
     if args.quit:quiet=1
     unpackrom(args.file,rom)
 if __name__ == '__main__':
     print('''
     **********************************libunpakrom*****************************************
-    *                           Android ROM 智能处理工具箱 Sub版本                         *
+    *                           Android ROM 智能解包工具箱 版本2.1                         *
     *       支持市面上绝大部分Android手机的ROM解包,未来更新后还将支持ROM打包等操作         *
     *       功能:                                                                         *
     *                     ①OPPO OZIP解密                                                  *
