@@ -1,13 +1,13 @@
+ConfigParser
 protobuf
 brotli
 pycrypto
 docopt
 stat
 Crypto
-binascii
 zstandard
-binascii
 google
 checker
 lz4
 glob2
+pyinstaller
