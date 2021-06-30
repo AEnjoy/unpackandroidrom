@@ -665,7 +665,7 @@ def main(args=None):
     if os.path.exists('rom')==False:os.mkdir('rom')
     if args.file:rom=rominformation(args.file)
     if args.version:
-        print('Android ROM Unpack Tool \r\n 安卓ROM解包工具 \r\n Version:2.1.1 \r\n BuildDate: 2020-8-16 13:16:41')
+        print('Android ROM Unpack Tool \r\n 安卓ROM解包工具 \r\n Version:2.1.1 \r\n BuildDate: 2021-7-1 01:23:35')
         sys.exit(0)
     else:rom=rominformation(input('请选择一个处理的ROM>>>'))
     if args.type=='kdz':rom.lgkdz=True
