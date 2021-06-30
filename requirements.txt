@@ -1,13 +1,14 @@
+#该文件用于记录此项目所需依赖.
 ConfigParser
 protobuf
 brotli
 pycrypto
 docopt
-stat
+#stat 已弃用
 Crypto
 zstandard
 google
 checker
 lz4
 glob2
-pyinstaller
+#pyinstaller

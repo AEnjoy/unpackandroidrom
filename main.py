@@ -2,19 +2,18 @@
 # -*- coding: utf-8 -*-
 #   adbshellpy_libunpakrom
 #       By : 神郭
-#  Version : 2.1
-try:import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4.frame,glob2
+#  Version : 2.1.1
+try:import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4.frame,glob2,undz,unkdz,rimg2sdat,sdat2img,payload_dumper
 except ImportError:
     print('E:请执行install_requirements.py后再执行main!')
     input('按Enter键退出')
     exit(1)
-
+ozipmodelerror=0
 #sys.path.append(os.path.join(sys.path[0], "libromparse"))
-try:import undz,unkdz,ozipdecrypt,rimg2sdat,sdat2img,payload_dumper
+try:import ozipdecrypt
 except ImportError:
-    print('E:请执行install_requirements.py后再执行main!')
-    input('按Enter键退出')
-    exit(1)
+    print('W:pycrypto依赖未安装,oppo ozip解包将不可用')
+    ozipmodelerror=1
     
 quiet=0 #0询问 1安静
 
@@ -492,8 +491,17 @@ class unpackrom():
         lg_kd_kdz(self.file).unpackdz(a)
 
     def oppo_ozip(self):
+        global ozipmodelerror
         if quiet==0:
-            if input('是否解密oppo ozip?y/n>>>')=='n':return        
+            if input('是否解密oppo ozip?y/n>>>')=='n':return
+        if ozipmodelerror==1:
+            print('''
+            E:pycrypto模块错误!不支持oppo ozip解包!
+            有关pycrypto安装信息,请浏览:
+            https://github.com/AEnjoy/unpackandroidrom/blob/master/about_pycrypto.md
+            https://hub.fastgit.org/AEnjoy/unpackandroidrom/blob/master/about_pycrypto.md
+            ''')
+            return
         ozipdecrypt.main(self.file)
         self.file=self.file.replace('.ozip','.zip')
         z=zipfile.ZipFile(self.file)
@@ -657,7 +665,7 @@ def main(args=None):
     if os.path.exists('rom')==False:os.mkdir('rom')
     if args.file:rom=rominformation(args.file)
     if args.version:
-        print('Android ROM Unpack Tool \r\n 安卓ROM解包工具 \r\n Version:2.1 \r\n BuildDate: 2020-8-16 13:16:41')
+        print('Android ROM Unpack Tool \r\n 安卓ROM解包工具 \r\n Version:2.1.1 \r\n BuildDate: 2020-8-16 13:16:41')
         sys.exit(0)
     else:rom=rominformation(input('请选择一个处理的ROM>>>'))
     if args.type=='kdz':rom.lgkdz=True
@@ -676,7 +684,7 @@ def main(args=None):
 if __name__ == '__main__':
     print('''
     **********************************libunpakrom*****************************************
-    *                           Android ROM 智能解包工具箱 版本2.1                         *
+    *                           Android ROM 智能解包工具箱 版本2.1.1                       *
     *       支持市面上绝大部分Android手机的ROM解包,未来更新后还将支持ROM打包等操作         *
     *       功能:                                                                         *
     *                     ①OPPO OZIP解密                                                  *
