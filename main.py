@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #   adbshellpy_libunpakrom
 #       By : 神郭
-#  Version : 2.1.1
+#  Version : 2.1.2
 try:import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4.frame,glob2,undz,unkdz,rimg2sdat,sdat2img,payload_dumper
 except ImportError:
     print('E:请执行install_requirements.py后再执行main!')
@@ -401,7 +401,7 @@ class unpackrom():
             if rominfo.flag==5 or rominfo.flag==4:self.unzip()
             if rominfo.ozip==True:self.oppo_ozip()
             if rominfo.abflag==True:self.abunpack()#.bin
-        elif a=='n':print('用户取消')
+        elif a=='n':print('操作已取消')
     def miui_tar(self):
         if quiet==0:
             if input('是否解包XiaomiTarFile?y/n>>>')=='n':return
@@ -410,12 +410,15 @@ class unpackrom():
         tar.close()
         print('Done.')
         items = os.listdir('rom')
+        dir='rom/'
         if len(items)==1:
-            dir='rom/'+items[1]+'/'
+            dir=dir+items[1]+'/'
             items = os.listdir(dir)
             for i in items:
                 if i.find('images')>-1:dir=dir+i+'/'
-        imgfile = glob2.glob(dir+'/super.img')
+            imgfile = glob2.glob(dir+'/super.img')
+        else:
+            imgfile=''
         if len(imgfile)==0:
             imgfile = glob2.glob(dir+'/system.img')
         if len(imgfile)==1:
@@ -451,10 +454,12 @@ class unpackrom():
                         os.system('lz4 -d '+a)
                 else:
                     data = infile.read()
-                    outfile = open(b, 'wb')
-                    data = lz4.frame.decompress(data)
-                    outfile.write(data)
-                    outfile.close()
+                    with open(b, 'rb') as data:
+                        data = data.read()
+                        newdata = lz4.frame.decompress(data)
+                        outfile = open(b, 'wb')
+                        outfile.write(newdata)
+                        outfile.close()
             infile.close()
         '''
         lz4install()
@@ -689,7 +694,7 @@ if __name__ == '__main__':
     *       功能:                                                                         *
     *                     ①OPPO OZIP解密                                                  *
     *                     ②Android O+ A/B分区(System As Root) payload.bin 解包            *
-    *                     ③Android Q+ 真(假)动态分区payload.bin解包                        *
+    *                     ③Android Q+ 真(虚拟)动态分区payload.bin解包                        *
     *                     ④Android L+ .new.dat, .new.dat.br 转换img                       *
     *                     ⑤Android L+ 分区.img解包                                        *
     *                     ⑥常规解包,卡刷包解包.                                            *
