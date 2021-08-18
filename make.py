@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #       make.py
 #       By : 神郭
-import os,zipfile
+import os,zipfile,platform
 from shutil import copy,copytree
 def main():
     print('''make:
@@ -34,7 +34,7 @@ def main():
         copy('README_ozip.md', 'dist'+os.sep+'README_ozip.md')
         copy('README_unpayload.md', 'dist'+os.sep+'README_unpayload.md')
         copytree('pic', 'dist'+os.sep+'pic')
-        z = zipfile.ZipFile('main.zip', 'w') 
+        z = zipfile.ZipFile(platform.system()+'_'+platform.machine()+'.zip', 'w') 
         for d in os.listdir('dist'):
             z.write('dist'+os.sep+d)
         for c in os.listdir('dist'+os.sep+'pic'):

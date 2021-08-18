@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #   adbshellpy_libunpakrom
 #       By : 神郭
-#  Version : 2.1.2
+#  Version : 2.2.2
 try:import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4.frame,glob2,undz,unkdz,rimg2sdat,sdat2img,payload_dumper
 except ImportError:
     print('E:请执行install_requirements.py后再执行main!')
@@ -689,7 +689,7 @@ def main(args=None):
 if __name__ == '__main__':
     print('''
     **********************************libunpakrom*****************************************
-    *                           Android ROM 智能解包工具箱 版本2.1.1                       *
+    *                           Android ROM 智能解包工具箱 版本2.2.2                       *
     *       支持市面上绝大部分Android手机的ROM解包,未来更新后还将支持ROM打包等操作         *
     *       功能:                                                                         *
     *                     ①OPPO OZIP解密                                                  *
