@@ -34,7 +34,7 @@ def main():
         copy('README_ozip.md', 'dist'+os.sep+'README_ozip.md')
         copy('README_unpayload.md', 'dist'+os.sep+'README_unpayload.md')
         copytree('pic', 'dist'+os.sep+'pic')
-        z = zipfile.ZipFile(platform.system()+'_'+platform.machine()+'.zip', 'w') 
+        z = zipfile.ZipFile(platform.system()+'_'+platform.machine()+'.zip', 'w',compression=zipfile.ZIP_DEFLATED,allowZip64=True) 
         for d in os.listdir('dist'):
             z.write('dist'+os.sep+d)
         for c in os.listdir('dist'+os.sep+'pic'):

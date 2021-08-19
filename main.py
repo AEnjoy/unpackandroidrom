@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #   adbshellpy_libunpakrom
 #       By : 神郭
-#  Version : 2.2.2
+#  Version : 2.2.3
 try:import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4.frame,glob2,undz,unkdz,rimg2sdat,sdat2img,payload_dumper
 except ImportError:
     print('E:请执行install_requirements.py后再执行main!')
@@ -44,27 +44,6 @@ def get_saminfo(filename='AP_G9650ZCS6CSK2_CL17051143_QB26966166_REV01_user_low_
     except FileNotFoundError:
         print(filename + ' 未找到!')
         return None
-
-class adbshellpyinformation():
-    '''
-    https://github.com/AEnjoy/adbshellpy/
-    '''
-    def __init__(self,uselinuxpkgmanagertoinstalladb=None,adbfile=None,aapt=None,conf=None):
-        import platform
-        self.p=platform.system()
-        try:
-            from adbshell_alpha import branch
-            self.branch=branch
-        except ImportError:
-            try:
-                from adbshell import branch
-                self.branch=branch
-            except ImportError:self.branch='dev'
-        self.uselinuxpkgmanagertoinstalladb=uselinuxpkgmanagertoinstalladb
-        self.adbfile=adbfile
-        self.aapt=aapt
-        self.conf=conf
-
 class rominformation:
     '''
     brotli=None
@@ -97,33 +76,6 @@ class rominformation:
             self.flag=3
             print('发现A/B(System As Root)更新文件(安卓10动态分区)')
             return
-        if zipfile.is_zipfile(file)==False:
-            if file.find('.kdz') > -1:
-                print('Maybe:发现LG .kdz文件!\n正在测试是否为 .kdz文件...')
-                if lg_kd_kdz(file).islgkdzfile():
-                    self.lgkdz=True
-                    self.flag=3
-                    self.type=3
-                    print('发现LG .kdz文件!')
-                    return
-                else:
-                    print('这个文件可能不是LG .kdz文件?')
-                    self.flag=2
-                    return
-            if file.find('.dz') > -1:
-                print('Maybe:发现LG .dz文件!\n正在测试是否为 .dz文件...')
-                if lg_kd_kdz(file).islgdzfile():
-                    self.lgkd=True
-                    self.flag=3
-                    self.type=3  
-                    print('发现LG .dz文件!')
-                else:
-                    print('这个文件可能不是LG .dz文件?')
-                    self.flag=2                    
-                    return
-            print('无效不可读格式?')
-            self.flag=2
-            return
         if file.find('.ozip') > -1 and zipfile.is_zipfile(file)==True:
             with open(file,'rb') as fr:
                 magic=fr.read(12)
@@ -143,6 +95,7 @@ class rominformation:
                 a=li[2].split('_')
                 print('ROM类型:'+a[0]+'\n版本:'+a[1]+'\n发行标志:'+a[5]+'\n固件类型:offical')
                 print('发现三星odin线刷文件!')
+                print('W:只有ROM类型为AP才支持解包出系统镜像')
                 return
             print('Maybe:发现三星odin线刷文件?!')
         if file.find('.tgz') > -1 and tarfile.is_tarfile(file):
@@ -291,29 +244,35 @@ class rominformation:
                     z.close()
                     return
             print('W:无法从updater-script获取ROM信息!!')
+        if zipfile.is_zipfile(file)==False:
+            if file.find('.kdz') > -1:
+                print('Maybe:发现LG .kdz文件!\n正在测试是否为 .kdz文件...')
+                if lg_kd_kdz(file).islgkdzfile():
+                    self.lgkdz=True
+                    self.flag=3
+                    self.type=3
+                    print('发现LG .kdz文件!')
+                    return
+                else:
+                    print('这个文件可能不是LG .kdz文件?')
+                    self.flag=2
+                    return
+            if file.find('.dz') > -1:
+                print('Maybe:发现LG .dz文件!\n正在测试是否为 .dz文件...')
+                if lg_kd_kdz(file).islgdzfile():
+                    self.lgkd=True
+                    self.flag=3
+                    self.type=3  
+                    print('发现LG .dz文件!')
+                else:
+                    print('这个文件可能不是LG .dz文件?')
+                    self.flag=2                    
+                    return
+            print('无效不可读格式?')
+            self.flag=2
+            return
         z.close()
 
-def lz4install():
-    if adbshellpyinformation().p=='Linux':
-        '''
-        if os.path.exists('lz4')==False:
-            try:urllib.request.urlretrieve('https://hub.fastgit.org/AEnjoy/unpackandroidrom/raw/master/lz4','lz4')
-            except:pass
-            os.system('chmod 777 lz4')
-        '''
-        os.system('su -c apt install lz4 -y')
-        os.system('su -c dnf install lz4 -y')
-    else:
-        if os.path.exists('lz4.exe')==False:
-            try:urllib.request.urlretrieve('https://hub.fastgit.org/AEnjoy/unpackandroidrom/raw/master/lz4.exe','lz4.exe')
-            except:pass
-            '''
-            z=zipfile.ZipFile('lz4.zip')
-            z.extract('lz4.exe')
-            z.close()            
-            os.remove('lz4.zip')
-            '''
-    return
 class lg_kd_kdz():
     def __init__(self,file):
         """
@@ -434,42 +393,19 @@ class unpackrom():
         #lz4File
         lz4file = glob2.glob('rom/*.lz4')
         for a in lz4file:
+            #a:input_file b:output_file char
+            b=a.replace('.img.lz4','.img')
             with open(a, 'rb') as infile:
-                b=a.replace('.img.lz4','.img')
-                if b.find('.img.ext4.lz4')>-1:
-                    if quiet==0:
-                        c=input('文件系统格式发现:.img.ext4.lz4 该格式解包可能会导致系统内存溢出,是否使用外部解包器?默认y[y/n]>>>')
-                        if c=='y' or c=='':
-                            lz4install()
-                            os.system('lz4 -d '+a)
-                        elif c=='n':
-                            b=a.replace('.img.ext4.lz4','.img')
-                            data = infile.read()
-                            outfile = open(b, 'wb')
-                            data = lz4.frame.decompress(data)
-                            outfile.write(data)
-                            outfile.close()
-                    elif quiet==1:
-                        lz4install()
-                        os.system('lz4 -d '+a)
-                else:
-                    data = infile.read()
-                    with open(b, 'rb') as data:
-                        data = data.read()
-                        newdata = lz4.frame.decompress(data)
-                        outfile = open(b, 'wb')
-                        outfile.write(newdata)
-                        outfile.close()
+                data=infile.read()
+                newdata = lz4.frame.decompress(data)
+                outfile = open(b, 'wb')
+                outfile.write(newdata)
+                outfile.close()
             infile.close()
-        '''
-        lz4install()
-        if platform.system()=='Windows':
-            os.system(r'for %a in (rom\*.lz4) do lz4 -d %a')
-            os.system(r'for %a in (rom\*.lz4) do del /f/s/q %a')
-        else:
-            os.system('find ./rom -name *.lz4  |xargs lz4 -d')
-            os.system('find ./rom -name *.lz4  |xargs rm ')
-        '''
+        if os.path.exists('rom/super.img') and self.unpacktodir==1:
+            print('W:动态分区解包有待测试')
+            self.file='rom/super.img'
+            self.imgunpack()
         if os.path.exists('rom/system.img') and self.unpacktodir==1:
             self.file='rom/system.img'
             self.imgunpack()
@@ -605,7 +541,7 @@ class unpackrom():
         if quiet==0:
             if input('是否解包.img?y/n>>>')=='n':return
         if self.file.find('super.img')>-1:print('W:动态分区支持未测试.')
-        if adbshellpyinformation().p=='Linux':
+        if platform.system()=='Linux':
             if flag==1:
                 os.system('mkdir android-system-img')
                 os.system('sudo mount %s android-system-img'%self.file)
@@ -615,7 +551,7 @@ class unpackrom():
                 os.system('e2fsck -p -f '+self.file)
                 os.system('resize2fs -M '+self.file)
                 print('Done!: 保存的镜像 '+self.file)
-        if adbshellpyinformation().p=='Windows':
+        if platform.system()=='Windows':
             url='https://hub.fastgit.org/AEnjoy/adbshellpy/raw/master/Imgextractor.exe'
             if os.path.exists('Imgextractor.exe')==False:
                 try:urllib.request.urlretrieve(url,'Imgextractor.exe')
@@ -670,7 +606,7 @@ def main(args=None):
     if os.path.exists('rom')==False:os.mkdir('rom')
     if args.file:rom=rominformation(args.file)
     if args.version:
-        print('Android ROM Unpack Tool \r\n 安卓ROM解包工具 \r\n Version:2.1.1 \r\n BuildDate: 2021-7-1 01:23:35')
+        print('Android ROM Unpack Tool \r\n 安卓ROM解包工具 \r\n Version:2.2.3 \r\n BuildDate: 2021-8-20 01:25:48')
         sys.exit(0)
     else:rom=rominformation(input('请选择一个处理的ROM>>>'))
     if args.type=='kdz':rom.lgkdz=True
@@ -689,7 +625,7 @@ def main(args=None):
 if __name__ == '__main__':
     print('''
     **********************************libunpakrom*****************************************
-    *                           Android ROM 智能解包工具箱 版本2.2.2                       *
+    *                           Android ROM 智能解包工具箱 版本2.2.3                       *
     *       支持市面上绝大部分Android手机的ROM解包,未来更新后还将支持ROM打包等操作         *
     *       功能:                                                                         *
     *                     ①OPPO OZIP解密                                                  *
