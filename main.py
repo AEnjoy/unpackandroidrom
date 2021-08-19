@@ -608,7 +608,15 @@ def main(args=None):
     if args.version:
         print('Android ROM Unpack Tool \r\n 安卓ROM解包工具 \r\n Version:2.2.3 \r\n BuildDate: 2021-8-20 01:25:48')
         sys.exit(0)
-    else:rom=rominformation(input('请选择一个处理的ROM>>>'))
+    else:
+        file=input('请选择一个处理的ROM>>>')
+        if file=='':
+            print('E:请选择一个ROM文件!')
+            exit(1)
+        elif os.path.exists(file):rom=rominformation(file)
+        else:
+            print('E:请选择一个ROM文件!')
+            exit(1)            
     if args.type=='kdz':rom.lgkdz=True
     elif args.type=='dz':rom.lgkd=True
     elif args.type=='samsumgodin':rom.samsumgodinfile=True
