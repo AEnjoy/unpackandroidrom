@@ -33,7 +33,7 @@ def main():
         copy('README_LGKDZ.txt', 'dist'+os.sep+'README_LGKDZ.txt')
         copy('README_ozip.md', 'dist'+os.sep+'README_ozip.md')
         copy('README_unpayload.md', 'dist'+os.sep+'README_unpayload.md')
-        copy('simg2img.md', 'dist'+os.sep+'simg2img.md')        
+        copy('README_simg2img.md', 'dist'+os.sep+'README_simg2img.md')        
         copytree('pic', 'dist'+os.sep+'pic')
         z = zipfile.ZipFile(platform.system()+'_'+platform.machine()+'.zip', 'w',compression=zipfile.ZIP_DEFLATED,allowZip64=True) 
         for d in os.listdir('dist'):
