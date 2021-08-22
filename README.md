@@ -28,6 +28,8 @@ oppo ozip解密解包功能正常(仅部分机型)(含.new.dat.br)
 
 三星官方tar.md5解包system正常
 
+MIUI线刷包卡刷包解包正常
+
 魅族 new.dat解包正常
 
 360 普通打包方式解包正常
@@ -84,6 +86,7 @@ sdat2img:https://github.com/xpirt/sdat2img
 rimg2sdat:https://github.com/jazchen/rimg2sdat
 LGKDZ:https://github.com/randomstuffpaul/kdztools
 PayloadDumperOnDocker:https://github.com/matze19999/PayloadDumperOnDocker
+simg2img:https://code.google.com/p/simg2img
 
 运行环境需求:
 
@@ -94,6 +97,11 @@ Python2.7/Python3.6+
 Changes:
 
 ```
+2.2.2→2.2.3:2021-8-22 19:09:49
+1.修复MIUI线刷包解包后可能会出现错误的问题
+2.解决识别部分ROM后产生的垃圾文件未自动清理的问题
+3.默认自动转换动态分区super.img文件
+
 2.2.2→2.2.3:2021-8-20 01:25:48
 1.旧版本号忘记更新了,现在更新回来
 2.修复三星线刷包解包失败问题(Thanks to CoolApkUser:名字嘛随机取一个)

@@ -4,3 +4,4 @@ sdat2img:https://github.com/xpirt/sdat2img
 rimg2sdat:https://github.com/jazchen/rimg2sdat
 LGKDZ:https://github.com/randomstuffpaul/kdztools
 PayloadDumperOnDocker:https://github.com/matze19999/PayloadDumperOnDocker
+simg2img:https://code.google.com/p/simg2img

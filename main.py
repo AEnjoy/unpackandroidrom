@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 #   adbshellpy_libunpakrom
 #       By : 神郭
-#  Version : 2.2.3
-try:import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4.frame,glob2,undz,unkdz,rimg2sdat,sdat2img,payload_dumper
+#  Version : 2.2.4
+try:import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4.frame,glob2,undz,unkdz,sdat2img,payload_dumper,simg2img
 except ImportError:
     print('E:请执行install_requirements.py后再执行main!')
     input('按Enter键退出')
     exit(1)
 ozipmodelerror=0
-#sys.path.append(os.path.join(sys.path[0], "libromparse"))
 try:import ozipdecrypt
 except ImportError:
     print('W:pycrypto依赖未安装,oppo ozip解包将不可用')
@@ -33,7 +32,6 @@ def get_saminfo(filename='AP_G9650ZCS6CSK2_CL17051143_QB26966166_REV01_user_low_
                     fp.seek(offset, 2)
                     lines = fp.readlines()
                     if len(lines) >= 2:
-                        print('a')
                         return lines[l]
                     else:
                         offset *= 2
@@ -152,7 +150,7 @@ class rominformation:
             elif v == 4:
                 print('Android Nougat 7.x / Oreo 8.x 或更高版本检测到!\n')
                 self.androidVersion='Nougat 7.x or higher API 24+'
-
+            os.remove('system.transfer.list')
         if 'payload.bin' in self.l:
             self.abflag=True
             self.flag=4
@@ -193,24 +191,6 @@ class rominformation:
                     os.remove(names)
                     for i in l:
                         x=i.split('=')
-                        '''
-                        if x[0]=='ro.build.version.sdk':
-                            try:
-                                sdk=int(x[1])
-                                if sdk < 21:print('W:您处理的ROM太老旧了哦,不支持显示版本及代号,仅支持显示API版本')
-                                elif sdk==21:self.androidVersion='Lollipop 5.0'
-                                elif sdk ==22:self.androidVersion='Lollipop 5.1'
-                                elif sdk ==23:self.androidVersion='Marshmallow 6.0'
-                                elif sdk ==24:self.androidVersion='Nougat 7.0'
-                                elif sdk ==25:self.androidVersion='Nougat 7.1'
-                                elif sdk ==26:self.androidVersion='Oreo 8.0'
-                                elif sdk ==27:self.androidVersion='Oreo 8.1'
-                                elif sdk ==28:self.androidVersion='Pie 9.0'
-                                elif sdk ==29:self.androidVersion='Q 10.0'
-                                elif sdk ==30:self.androidVersion='R 11.0'
-                                self.androidVersion=self.androidVersion+ ' API: '+x[1]
-                            except:print('E:你目前处理的ROM似乎是开发者内侧版或被修改成了错误的值.')
-                        '''
                         if x[0]=='ro.build.fingerprint':#Android 指纹库
                             text=x[1]
                             self.info=text.split('/')
@@ -371,17 +351,17 @@ class unpackrom():
         items = os.listdir('rom')
         dir='rom/'
         if len(items)==1:
-            dir=dir+items[1]+'/'
+            dir=dir+items[0]+'/'
             items = os.listdir(dir)
             for i in items:
-                if i.find('images')>-1:dir=dir+i+'/'
-            imgfile = glob2.glob(dir+'/super.img')
-        else:
-            imgfile=''
-        if len(imgfile)==0:
-            imgfile = glob2.glob(dir+'/system.img')
-        if len(imgfile)==1:
-            self.file=imgfile[0]
+                if i.find('images')>-1:
+                    dir=dir+i+'/'
+                    if os.path.exists(dir+'super.img'):
+                        print('MIUI:发现线刷包动态分区镜像.')
+                        imgfile = dir+'super.img'
+                    if os.path.exists(dir+'system.img'):
+                        imgfile = dir+'system.img'
+            self.file=imgfile
             self.imgunpack()
         
     def samsumg_tar(self):
@@ -540,7 +520,14 @@ class unpackrom():
         '''flag: 1mount 2unmount Linux'''
         if quiet==0:
             if input('是否解包.img?y/n>>>')=='n':return
-        if self.file.find('super.img')>-1:print('W:动态分区支持未测试.')
+        if self.file.find('super.img')>-1:
+            print('''W:暂不支持解包动态分区super.img文件!
+            正在转换super.img...以便手动解包
+            ''')
+            a=''
+            simg2img.main(self.file,a)
+            print('输出的文件:'+a)
+            return
         if platform.system()=='Linux':
             if flag==1:
                 os.system('mkdir android-system-img')
@@ -606,7 +593,7 @@ def main(args=None):
     if os.path.exists('rom')==False:os.mkdir('rom')
     if args.file:rom=rominformation(args.file)
     if args.version:
-        print('Android ROM Unpack Tool \r\n 安卓ROM解包工具 \r\n Version:2.2.3 \r\n BuildDate: 2021-8-20 01:25:48')
+        print('Android ROM Unpack Tool \r\n 安卓ROM解包工具 \r\n Version:2.2.4 \r\n BuildDate: 2021-8-22 19:09:49')
         sys.exit(0)
     else:
         file=input('请选择一个处理的ROM>>>')
@@ -633,7 +620,7 @@ def main(args=None):
 if __name__ == '__main__':
     print('''
     **********************************libunpakrom*****************************************
-    *                           Android ROM 智能解包工具箱 版本2.2.3                       *
+    *                           Android ROM 智能解包工具箱 版本2.2.4                       *
     *       支持市面上绝大部分Android手机的ROM解包,未来更新后还将支持ROM打包等操作         *
     *       功能:                                                                         *
     *                     ①OPPO OZIP解密                                                  *
