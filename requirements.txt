@@ -1,14 +1,13 @@
-#¸ÃÎÄ¼şÓÃÓÚ¼ÇÂ¼´ËÏîÄ¿ËùĞèÒÀÀµ.
+#è¯¥æ–‡ä»¶ç”¨äºè®°å½•æ­¤é¡¹ç›®æ‰€éœ€ä¾èµ–.
 ConfigParser
 protobuf
 brotli
 pycryptodome
 docopt
-#stat ÒÑÆúÓÃ
+#stat å·²å¼ƒç”¨
 Crypto
 zstandard
 google
-checker
 lz4
 glob2
 #pyinstaller
