@@ -1,10 +1,10 @@
-#è¯¥æ–‡ä»¶ç”¨äºè®°å½•æ­¤é¡¹ç›®æ‰€éœ€ä¾èµ–.
+#¸ÃÎÄ¼şÓÃÓÚ¼ÇÂ¼´ËÏîÄ¿ËùĞèÒÀÀµ.
 ConfigParser
 protobuf
 brotli
-pycrypto
+pycryptodome
 docopt
-#stat å·²å¼ƒç”¨
+#stat ÒÑÆúÓÃ
 Crypto
 zstandard
 google
