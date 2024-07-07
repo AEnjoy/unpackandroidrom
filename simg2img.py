@@ -83,7 +83,7 @@ def main(file,outfile=''):
                     if chunk_header.type == 0xCAC2:  # TYPE_FILL
                         print("fill_chunk \n")
                         print("chunk_size:%x" % chunk_header.chunk_size)
-                        print("output len:%x" % output_len + len_data)
+                        print("output len:%x" % (output_len + len_data))
                     else:
                         if chunk_header.type == 0xCAC3:  # TYPE_DONT_CARE
                             print("none chunk at chunk:%d" % (file_header.total_chunks - total_chunks))
@@ -91,7 +91,7 @@ def main(file,outfile=''):
                                 chunk_header.chunk_size, file_header.block_size))
                         else:
                             print("unknown type!!")
-                            print("output len:%x" % output_len + len_data)
+                            print("output len:%x" % (output_len + len_data))
                             
                     ofd.write(struct.pack("B", 0) * len_data) 
                 output_len += len_data
