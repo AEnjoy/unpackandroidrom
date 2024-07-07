@@ -2,7 +2,10 @@
 
 此项目使用Python语言,一键解包安卓ROM的system.img
 
-(开发中 累)
+由于各大手机厂商基本上已经封闭了ROM的下载和获取,后继对于ROM解包支持可能会难以维护
+
+目前主要支持安卓10及以下的ROM解包(以及安卓10及以上标准的动态分区/AB分区解包支持)
+
 
 支持格式:
 
@@ -50,13 +53,15 @@ git clone --depth=1 https://hub.fastgit.org/AEnjoy/unpackandroidrom.git
 
 安装依赖:
 
-```
+```shell
 python3 install_requirements.py
+# or
+pip install -r requirements.txt
 ```
 
 运行:
 
-```
+```shell
 python3 main.py
 ```
 
@@ -66,13 +71,13 @@ python3 main.py
 
 定期执行-清理缓存
 
-```
+```shell
 python clean_cache.py
 ```
 
 定期执行-项目同步
 
-```
+```shell
 git pull
 ```
 
@@ -97,6 +102,21 @@ Python2.7/Python3.6+
 Changes:
 
 ```
+2.2.4→2.2.5:2024-7-7 17:35:59
+1.Upgrade Docs.
+2.Fix TypeError thanks to @WangBoee
+
+2.2.3→2.2.4:2021-8-22 23:09:49
+1.旧版本号忘记更新了,现在更新回来
+2.修复三星线刷包解包失败问题(Thanks to CoolApkUser:名字嘛随机取一个)
+3.修复三星线刷包识别可能失败的问题
+4.清理代码中的垃圾部分
+5.make.py Update:减小打包后的文件体积
+6.make.py Update:根据系统,系统架构自动重命名压缩包文件
+7.修复MIUI线刷包解包后可能会出现错误的问题
+8.解决识别部分ROM后产生的垃圾文件未自动清理的问题
+9.默认自动转换动态分区super.img文件
+
 2.2.2→2.2.3:2021-8-22 19:09:49
 1.修复MIUI线刷包解包后可能会出现错误的问题
 2.解决识别部分ROM后产生的垃圾文件未自动清理的问题

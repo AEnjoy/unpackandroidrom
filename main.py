@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #   adbshellpy_libunpakrom
-#       By : 神郭
-#  Version : 2.2.4
+#       By : AEnjoy
+#  Version : 2.2.5
+# last Update: 2024-7-7 17:38:01
 try:import sys,os,zipfile,urllib.request,tarfile,argparse,platform,lz4.frame,glob2,undz,unkdz,sdat2img,payload_dumper,simg2img
 except ImportError:
     print('E:请执行install_requirements.py后再执行main!')
